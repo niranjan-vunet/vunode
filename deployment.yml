@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vunode
+spec:
+  selector:
+    matchLabels:
+      app: vunode
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: vunode
+    spec:
+      containers:
+        - name: vunode
+          image: ghcr.io/vunetsystems/vu_node:latest
+          workingDir: /home/vunet/workspace/cairo/
+          imagePullPolicy: Never
+          env:
+            - name: PATH
+              value: "/home/vunet/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+            - name: DJANGO_SETTINGS_MODULE
+              value: "mickey.core.settings"
+            - name: PYTHONPATH
+              value: "/home/vunet/workspace/cairo/"
+            - name: GIT_PYTHON_EXECUTABLE
+              value: "/usr/bin/git"
+            - name: GIT_PYTHON_REFRESH
+              value: "none"
+            - name: VUNET_VIRT_ENV
+              value: "/home/vunet/miniconda3/envs/vunetenv"
+            - name: VUNET_BASE_PATH
+              value: "/home/vunet/workspace/"
+            - name: VUNET_DOCKER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: cairo
+              mountPath: /home/vunet/workspace/cairo/
+          command: ["/bin/bash", "-c", "tools/vunode.bash /home/vunet/miniconda3/envs/vunetenv /home/vunet/workspace/cairo /home/vunet/workspace/cairo/configs/vunode_config.yml node1 start && tail -f /dev/null"]
+      volumes:
+        - name: cairo
+          hostPath:
+            path: /data/vunet/cairo
+      restartPolicy: Always

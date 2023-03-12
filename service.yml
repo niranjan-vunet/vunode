@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vunode
+spec:
+  selector:
+    app: vunode
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector:
+    app: db
+  ports:
+    - name: postgresql
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  selector:
+    matchLabels:
+      app: db
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: db
+          image: postgres:12.8
+          env:
+            - name: POSTGRES_DB
+              value: vunet
+            - name: POSTGRES_USER
+              value: vunet
+            - name: POSTGRES_PASSWORD
+              value: vunet
+              volumeMounts:
+                 - name: db-data
+                    mountPath: /var
