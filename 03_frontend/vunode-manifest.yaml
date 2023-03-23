@@ -1,0 +1,241 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vunode
+spec:
+  selector:
+    matchLabels:
+      app: vunode
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: vunode
+    spec:
+      containers:
+        - name: vunode
+          image: ghcr.io/vunetsystems/vu_node:latest
+          imagePullPolicy: Never
+          workingDir: /home/vunet/workspace/cairo
+          
+          volumeMounts:
+            # Mounting cairo, vunetenv, logs
+            - name: cairo
+              mountPath: /home/vunet/workspace/cairo/
+            - name: miniconda3
+              mountPath: /home/vunet/miniconda3/
+            - name: vunet-configs
+              mountPath: /etc/vunet/configs/
+            - name: vunode-config
+              mountPath: /home/vunet/workspace/cairo/configs
+            
+            # config file of opt directory 
+            - name: action-scripts
+              mountPath: /opt/action_scripts
+            - name: agents
+              mountPath: /opt/agents
+            - name: filegw
+              mountPath: /opt/filegw
+            - name: images
+              mountPath: /opt/images
+            - name: git-cmdb
+              mountPath: /opt/git_cmdb
+            - name: data-config-store
+              mountPath: /opt/data_config_store
+            - name: archive
+              mountPath: /opt/archive
+            - name: reports
+              mountPath: /opt/reports
+
+            # Mounting kibana required files
+            - name: vunet-kibana
+              mountPath: /opt/kibana
+            - name: init-kibana
+              mountPath: /etc/init.d/kibana
+            - name: default-kibana-service
+              mountPath: /etc/default/kibana
+            - name: config-kibana
+              mountPath: /opt/kibana/config/kibana.yml
+            
+            # Mapping logs
+            - name: vuinterface
+              mountPath: /var/log/vusmartmaps/
+            - name: apache2
+              mountPath: /var/log/apache2
+            - name: log-kibana
+              mountPath: /var/log/kibana
+            
+            # heartbeat config file  
+            - name: heartbeat
+              mountPath: /etc/heartbeat
+
+            # telegraf heartbeat config  
+            - name: telegraf-heartbeat
+              mountPath: /etc/telegraf-heartbeat
+
+            # telegraf-snmp
+            - name: telegraf-snmp
+              mountPath: /etc/telegraf-snmp
+
+            # telegraf-snmptrap 
+            - name: telegraf-snmptrap
+              mountPath: /etc/telegraf-snmptrap
+
+            - name: telegraf-telemetry
+              mountPath: /etc/telegraf-telemetry
+
+            - name: stack
+              mountPath: /etc/stack
+            
+            # docker socket mapping
+            - name: socket
+              mountPath: /var/run/docker.sock:ro
+
+            # This will sync time of the container as that of the host
+            - name: timezone
+              mountPath: /etc/timezone:ro
+
+            - name: localtime
+              mountPath: /etc/localtime:ro
+          env:
+            - name: PATH
+              value: "/home/vunet/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+            - name: DJANGO_SETTINGS_MODULE
+              value: "mickey.core.settings"
+            - name: PYTHONPATH
+              value: "/home/vunet/workspace/cairo/"
+            - name: GIT_PYTHON_EXECUTABLE
+              value: "/usr/bin/git"
+            - name: GIT_PYTHON_REFRESH
+              value: "none"
+            - name: VUNET_VIRT_ENV
+              value: "/home/vunet/miniconda3/envs/vunetenv"
+            - name: VUNET_BASE_PATH
+              value: "/home/vunet/workspace/"
+            - name: VUNET_DOCKER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          
+          command: ["/bin/bash", "-c", "tools/vunode.bash /home/vunet/miniconda3/envs/vunetenv /home/vunet/workspace/cairo /home/vunet/workspace/cairo/configs/vunode_config.yml node1 start; tail -f /dev/null"]
+
+      volumes:
+        - name: cairo
+          hostPath:
+           path: /data/vunet/cairo
+        - name: miniconda3
+          hostPath: 
+           path: /data/vunet/miniconda3/
+        - name: vunet-configs
+          hostPath:
+           path: /data/configs/vunet_config/
+        - name: vunode-config
+          hostPath:
+            path: /data/configs/vunode_config
+
+        - name: action-scripts
+          hostPath:
+            path: /data/configs/action_scripts
+        - name: agents
+          hostPath:
+            path: /data/configs/agents
+        - name: filegw
+          hostPath:
+            path: /data/configs/filegw
+        - name: images
+          hostPath:
+            path: /data/configs/images
+        - name: git-cmdb
+          hostPath:
+            path: /data/git_cmdb
+        - name: data-config-store
+          hostPath:
+            path: /data/configs/data_config_store
+        - name: archive
+          hostPath:
+            path: /data/archive
+        - name: reports
+          hostPath:
+            path: /data/configs/reports
+          
+        - name: vunet-kibana
+          hostPath: 
+            path: /data/vunet/kibana
+        - name: init-kibana
+          hostPath:
+            path: /data/services/init.d/kibana
+        - name: default-kibana-service
+          hostPath:
+            path: /data/services/default/kibana
+        - name: config-kibana
+          hostPath:
+            path: /data/configs/kibana/kibana.yml
+
+        - name: vuinterface
+          hostPath: 
+            path: /data/log/vusmartmaps/vuInterface/node1
+        - name: apache2
+          hostPath:
+            path: /data/log/apache2
+        - name: log-kibana
+          hostPath:
+            path: /data/log/kibana
+
+        - name: heartbeat
+          hostPath:
+            path: /data/configs/heartbeat
+        
+        - name: telegraf-heartbeat
+          hostPath:
+            path: /data/configs/telegraf-heartbeat
+
+        - name: telegraf-snmp
+          hostPath:
+            path: /data/configs/telegraf-snmp
+
+        - name: telegraf-snmptrap
+          hostPath:
+            path: /data/configs/telegraf-snmptrap
+
+        - name: telegraf-telemetry
+          hostPath:
+            path: /data/configs/telegraf-telemetry
+
+        - name: stack
+          hostPath:
+            path: /data/stack
+
+        - name: socket
+          hostPath: 
+           path: /var/run/docker.sock
+
+        - name: timezone
+          hostPath:
+           path: /etc/timezone
+
+        - name: localtime
+          hostPath:
+           path: /etc/localtime
+        
+       
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vunode
+spec:
+  selector:
+    app: vunode
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
